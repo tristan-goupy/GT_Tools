@@ -1,0 +1,14 @@
+{
+    "name": "GT_Tools",
+    "env": [
+        {
+            "GTTOOLS_DIR": "C:/Users/Admin/Documents/houdini20.0/packages/GT_Tools",
+            "HOUDINI_TOOLBAR_PATH": "$HOUDINI_TOOLBAR_PATH;$GTTOOLS_DIR/toolbar",
+            "HOUDINI_PATH": "$HOUDINI_PATH;$GTTOOLS_DIR/config/icons;&"
+            },
+        {
+            "PYTHONPATH": "$HOUDINI_PATH;$GTTOOLS_DIR/scripts/python;&"
+        }
+    ],
+    "path": "$GTTOOLS_DIR"  
+}

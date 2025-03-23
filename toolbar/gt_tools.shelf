@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <toolshelf name="gt_tools" label="GT Tools">
+    <memberTool name="nodeColorChooser"/>
+    <memberTool name="materialBuilder"/>
+  </toolshelf>
+
+  <tool name="nodeColorChooser" label="Node Color Chooser" icon="chooser_color.svg">
+    <helpText><![CDATA[Change the colors of your networks elements (nodes, backdrop, stickynotes) as you want.
+Select the elements first before running the script.]]></helpText>
+    <script scriptType="python"><![CDATA[import GT_nodeColorPicker as GT
+GT.nodeColorPicker()]]></script>
+    <keywordList>
+      <keyword>UI</keyword>
+      <keyword>Node</keyword>
+      <keyword>Color</keyword>
+    </keywordList>
+  </tool>
+
+  <tool name="materialBuilder" label="Material Builder" icon="editmaterial.svg">
+    <toolMenuContext name="network">
+      <contextNetType>VOP</contextNetType>
+    </toolMenuContext>
+    <script scriptType="python"><![CDATA[import importlib
+import GT_materialBuilder as GT    
+    
+importlib.reload(GT)
+
+GT.materialBuilder()]]></script>
+  </tool>
+</shelfDocument>
