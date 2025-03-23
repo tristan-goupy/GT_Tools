@@ -1,0 +1,46 @@
+#VS Code settings
+.vscode/*
+
+#Ignore workspace file
+*.code-workspace
+
+#Ignore VS Code debug logs
+.vscode/.history/
+.vscode/.python_history
+
+# Ignore Python cache and compiled files
+__pycache__/
+*.py[cod]
+*.so
+*.pyo
+*.pyd
+
+# Ignore virtual environments
+venv/
+.env/
+*.venv
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# Ignore OS-specific files
+Thumbs.db
+
+# Ignore PySide2 UI compiled files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Ignore Qt Designer UI files (if compiled)
+*.qrc
+*.ui
+*.rcc
+
+# Ignore build and cache files
+build/
+dist/
+*.egg-info/
