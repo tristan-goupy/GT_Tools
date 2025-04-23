@@ -7,7 +7,8 @@
 
   <toolshelf name="gt_tools" label="GT Tools">
     <memberTool name="nodeColorChooser"/>
-    <memberTool name="materialBuilder"/>
+    <memberTool name="fastMaterialBuilder"/>
+    <memberTool name="ui_test"/>
   </toolshelf>
 
   <tool name="nodeColorChooser" label="Node Color Chooser" icon="chooser_color.svg">
@@ -22,15 +23,22 @@ GT.nodeColorPicker()]]></script>
     </keywordList>
   </tool>
 
-  <tool name="materialBuilder" label="Material Builder" icon="editmaterial.svg">
-    <toolMenuContext name="network">
-      <contextNetType>VOP</contextNetType>
-    </toolMenuContext>
+  <tool name="fastMaterialBuilder" label="Fast Material Builder" icon="fastMaterialBuilder.svg">
     <script scriptType="python"><![CDATA[import importlib
-import GT_materialBuilder as GT    
-    
+import GT_materialBuilder as GT
+
 importlib.reload(GT)
 
-GT.materialBuilder()]]></script>
+controller = GT.MainApp()]]></script>
+  </tool>
+
+  <tool name="ui_test" label="UI TEST" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[from ui import GT_materialBuilder_ui as ui
+import importlib
+
+importlib.reload(ui)
+
+dialog = ui.mainWindow()
+dialog.show()]]></script>
   </tool>
 </shelfDocument>

@@ -7,7 +7,7 @@
             "HOUDINI_PATH": "$HOUDINI_PATH;$GTTOOLS_DIR/config/icons;&"
             },
         {
-            "PYTHONPATH": "$HOUDINI_PATH;$GTTOOLS_DIR/scripts/python;&"
+            "PYTHONPATH": "$HOUDINI_PATH;$GTTOOLS_DIR/scripts;&"
         }
     ],
     "path": "$GTTOOLS_DIR"  
