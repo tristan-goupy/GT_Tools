@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Arrows" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #ececec;
+        stroke-width: 0px;
+      }
+    </style>
+  </defs>
+  <polygon id="rightArrow" class="cls-1" points="7.5 5 2.5 0 2.5 10 7.5 5"/>
+</svg>

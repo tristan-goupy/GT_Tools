@@ -8,7 +8,6 @@
   <toolshelf name="gt_tools" label="GT Tools">
     <memberTool name="nodeColorChooser"/>
     <memberTool name="fastMaterialBuilder"/>
-    <memberTool name="ui_test"/>
   </toolshelf>
 
   <tool name="nodeColorChooser" label="Node Color Chooser" icon="chooser_color.svg">
@@ -24,21 +23,18 @@ GT.nodeColorPicker()]]></script>
   </tool>
 
   <tool name="fastMaterialBuilder" label="Fast Material Builder" icon="fastMaterialBuilder.svg">
-    <script scriptType="python"><![CDATA[import importlib
-import GT_materialBuilder as GT
+    <helpText><![CDATA[This tool allow you to create multiple materials from the same texture set.
 
-importlib.reload(GT)
+First set the base name of your material. The name must correspond to the name of the textures.
+
+Then select the texture folder.
+
+You have options to create multiple materials of different render engines. The default one is Karma.
+You can also choose to create a USD Preview Material or not, and use relative path or absolute path.
+
+Finally, you can select the textures channels you want to import in your material.]]></helpText>
+    <script scriptType="python"><![CDATA[import GT_materialBuilder as GT
 
 controller = GT.MainApp()]]></script>
-  </tool>
-
-  <tool name="ui_test" label="UI TEST" icon="PLASMA_App">
-    <script scriptType="python"><![CDATA[from ui import GT_materialBuilder_ui as ui
-import importlib
-
-importlib.reload(ui)
-
-dialog = ui.mainWindow()
-dialog.show()]]></script>
   </tool>
 </shelfDocument>

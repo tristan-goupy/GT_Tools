@@ -1,26 +1,22 @@
 import os
-import sys
-import getpass
 import hou, voptoolutils
 import re
-import importlib
 
-from PySide2.QtCore import QObject, Signal
+from PySide2.QtCore import Signal
+from PySide2.QtWidgets import (QApplication, QDialog)
 from ui import GT_materialBuilder_ui as ui
-
-importlib.reload(ui)
 
 try:
     import PrismInit
 except ImportError:
     PrismInit = None
 
-class SignalHandler(QObject):
+class MainApp(QDialog):
+
     channelsExport = Signal(list)
 
-class MainApp():
-    def __init__(self):   
-        self.signals = SignalHandler()
+    def __init__(self, parent = QApplication.activeWindow()):
+        super(MainApp, self).__init__(parent)
 
         # Initialize project start directories
         # Prism Project
@@ -60,57 +56,59 @@ class MainApp():
 
         # Instantiate UI
                 
-        self.mainWindow = ui.mainWindow()
+        self.mainWindow = ui.mainWindow(parent = self)
+        self.channelSelWindow = ui.channelSelWindow(parent = self)
         
-        self.mainWindow.confirm.connect(self.sendMessage)
+        self.mainWindow.confirm.connect(self.scanDirectory)
+        self.channelSelWindow.launch.connect(self.materialBuilder)
 
         self.mainWindow.show()
-
-    def sendMessage(self):
-        print("Hello!")    
-
+ 
     def scanDirectory(self, settings):
-        print("The function is called")
-        print(settings)
-        # Get the texture folder and the base material name from UI
-        textureDir = settings.get("textureFolder", "")
-        baseName = settings.get("materialName", "")
+        # Get all the settings from the UI
+        self.textureDir = settings.get("textureFolder", "")
+        self.baseName = settings.get("materialName", "")
+        self.materialList = settings.get("materialList", "")
+        self.relativePathParm = settings.get("relativePath", True)
 
-        if textureDir != "" and baseName != "":
+        if self.textureDir != "" and self.baseName != "":
             #Change the relative path to the absolute path
-            if PrismInit and "$PRISMJOB" in textureDir:
-                absTextureDir = textureDir.replace("$PRISMJOB", self.prismProject)
-            elif "$JOB" in textureDir:
-                absTextureDir = textureDir.replace("$JOB", self.houdiniJob)
-            elif "$HIP" in textureDir:
-                absTextureDir = textureDir.replace("$HIP", self.hipDir)
+            if PrismInit and "$PRISMJOB" in self.textureDir:
+                self.absTextureDir = self.textureDir.replace("$PRISMJOB", self.prismProject)
+            elif "$JOB" in self.textureDir:
+                self.absTextureDir = self.textureDir.replace("$JOB", self.houdiniJob)
+            elif "$HIP" in self.textureDir:
+                self.absTextureDir = self.textureDir.replace("$HIP", self.hipDir)
             else:
-                absTextureDir = textureDir
+                self.absTextureDir = self.textureDir
 
-            if not os.path.isdir(absTextureDir):
+            if not os.path.isdir(self.absTextureDir):
                 self.channelsExport.emit([])
                 return
             # Identify channels with UDIM textures
-            udimChannels = {}
-            for texture in os.listdir(absTextureDir):
+            self.udimChannels = {}
+            for texture in os.listdir(self.absTextureDir):
                 for channel, names in self.channelNames.items():
-                    if baseName in texture and any(name in texture for name in names) and ".rat" not in texture:
+                    if self.baseName in texture and any(name in texture for name in names) and ".rat" not in texture:
                         # Check for UDIM pattern
                         udim_match = re.search(r'\.\d{4}\.', texture)
                         if udim_match:
                             texturePattern = texture.replace(udim_match.group(0), ".<UDIM>.")
-                            udimChannels[channel] = texturePattern
+                            self.udimChannels[channel] = texturePattern
                         else:
                             texturePattern = texture
-                            udimChannels[channel] = texturePattern
+                            self.udimChannels[channel] = texturePattern
 
             # Create channel selection menu
-            foundChannels = list(udimChannels.keys())
-            print(foundChannels)
-            self.channelsExport.emit(foundChannels)
+            self.foundChannels = list(self.udimChannels.keys())
+            self.channelSelWindow.populateChannelList(self.foundChannels)
+
+            if len(self.foundChannels) != 0 and self.materialList != []:
+                self.channelSelWindow.show()
             
 
-    '''def materialBuilder(settings):            
+    def materialBuilder(self, getSelectedChannels):
+            channelSel = getSelectedChannels
             # Get the current context
             desktop = hou.ui.curDesktop()
             pane = desktop.paneTabOfType(hou.paneTabType.NetworkEditor)
@@ -140,14 +138,14 @@ class MainApp():
                 voptoolutils._setupMtlXBuilderSubnet(matNet, materialType, materialType, matMask, folderLabel, renderCtxt)
 
                 # Create Karma material subnet
-            def createRenderMaterials():
-                matNet = target.createNode("subnet", matPrefix + baseName + "_MTL")
+            def createRenderMaterials(matSetup, usdSetup = self.usdSetup):
+                matNet = target.createNode("subnet", matPrefix + self.baseName + "_MTL")
                 if matSetup != usdSetup:
                     VopNetSetup(matNet, matSetup[1], matSetup[0], matSetup[2], matSetup[3])
 
                 # Rename the mtlxstandard_surface node
                 surfaceNode = matNet.node("mtlxstandard_surface")
-                surfaceNode.setName(baseName + "_surface")
+                surfaceNode.setName(self.baseName + "_surface")
                 dispNode = matNet.node("mtlxdisplacement")
 
                 # Create mtlxtexcoord node inside the subnet
@@ -158,18 +156,17 @@ class MainApp():
                 
                 # Add textures nodes for selected channels
                 for index in channelSel:
-                    channel = foundChannels[index]
-                    texturePattern = udimChannels[channel]
+                    channel = self.foundChannels[index]
+                    texturePattern = self.udimChannels[channel]
                     # Create texture node
                     textureNode = matNet.createNode("mtlximage", channel)
-                    indexOfChannel = list(channelNames.keys()).index(channel)
+                    indexOfChannel = list(self.channelNames.keys()).index(channel)
                     
                     # Path to the texture channel
-                    relativePathParm = settings.get("relativePath","")
-                    if relativePathParm is True:
-                        pathToTexture = os.path.join(textureDir, texturePattern)
+                    if self.relativePathParm is True:
+                        pathToTexture = os.path.join(self.textureDir, texturePattern)
                     else:
-                        pathToTexture = os.path.join(absTextureDir, texturePattern)
+                        pathToTexture = os.path.join(self.absTextureDir, texturePattern)
                         
                     # Set path to texture
                     textureNode.parm("file").set(pathToTexture)
@@ -273,14 +270,14 @@ class MainApp():
                 matNet.layoutChildren()
                 matNet.moveToGoodPosition()
 
-            def createUSDPreviewMat():
+            def createUSDPreviewMat(matSetup):
                 # Create USD Material Preview Subnet
-                matNet = target.createNode("subnet", matPrefix + baseName + "_MTL")
+                matNet = target.createNode("subnet", matPrefix + self.baseName + "_MTL")
                 voptoolutils._setupUsdPreviewBuilderSubnet(matNet, matSetup[1], matSetup[1], matSetup[0], matSetup[2])
                 
                 # Rename the surface node
                 surfaceNode = matNet.node("usdpreviewsurface")
-                surfaceNode.setName(baseName + "_surface")
+                surfaceNode.setName(self.baseName + "_surface")
 
                 # Add the UV node
                 UVNode = matNet.createNode("usdprimvarreader",'UV')
@@ -292,18 +289,17 @@ class MainApp():
 
                 #Iterate through each channel
                 for index in channelSel:
-                    channel = foundChannels[index]
-                    texturePattern = udimChannels[channel]
+                    channel = self.foundChannels[index]
+                    texturePattern = self.udimChannels[channel]
 
                     textureNode = matNet.createNode("usduvtexture", channel)
-                    indexOfChannel = list(channelNames.keys()).index(channel)
+                    indexOfChannel = list(self.channelNames.keys()).index(channel)
 
                     # Path to the texture channel
-                    relativePathParm = settings.get("relativePath","")
-                    if relativePathParm is True:
-                        pathToTexture = os.path.join(textureDir, texturePattern)
+                    if self.relativePathParm is True:
+                        pathToTexture = os.path.join(self.textureDir, texturePattern)
                     else:
-                        pathToTexture = os.path.join(absTextureDir, texturePattern)
+                        pathToTexture = os.path.join(self.absTextureDir, texturePattern)
                         
                     # Set path to texture
                     textureNode.parm("file").set(pathToTexture)
@@ -347,18 +343,18 @@ class MainApp():
                 matNet.moveToGoodPosition()
 
             # Iterate through each material
-            materialList = settings.get("materialList", "")
-
-            for material in materialList:
-                if "Karma" in material:
-                    matSetup = karmaSetup
-                    matPrefix = 'KMA_'
-                    createRenderMaterials()
-                elif "MaterialX" in material:
-                    matSetup = mtlxSetup
-                    matPrefix = 'MTLX_'
-                    createRenderMaterials()
-                elif "USD Preview Material" in material:
-                    matSetup = usdSetup
-                    matPrefix = 'USD_'
-                    createUSDPreviewMat()'''
+            if channelSel != [] and self.materialList != []:
+                for material in self.materialList:
+                    if "Karma" in material:
+                        matSetup = self.karmaSetup
+                        matPrefix = 'KMA_'
+                        createRenderMaterials(matSetup)
+                    elif "MaterialX" in material:
+                        matSetup = self.mtlxSetup
+                        matPrefix = 'MTLX_'
+                        createRenderMaterials(matSetup)
+                    elif "USD Preview Material" in material:
+                        matSetup = self.usdSetup
+                        matPrefix = 'USD_'
+                        createUSDPreviewMat(matSetup)
+                self.mainWindow.close()

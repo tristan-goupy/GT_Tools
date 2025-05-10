@@ -1,18 +1,13 @@
-import sys
-import os
 import getpass
 import hou
-import re
-import importlib
 
 from PySide2.QtCore import Qt, QSize, Signal
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QIcon
 from PySide2.QtWidgets import (
-    QWidget, QVBoxLayout, QListView, QPushButton, QToolButton, QDialog, QLineEdit, QLabel, QCheckBox, QHBoxLayout, QSpacerItem
+    QVBoxLayout, QListView, QPushButton, QDialog, QLineEdit, QLabel, QCheckBox, QHBoxLayout
 )
 import ui.collapsibleSection as collapsibleSection
-
-importlib.reload(collapsibleSection)
+from ui.ui_utils import getIconPath
 
 Section = collapsibleSection.Section
 
@@ -25,7 +20,8 @@ class mainWindow(QDialog):
 
     confirm = Signal(dict)
 
-    def __init__(self, parent=hou.qt.mainWindow()):
+    def __init__(self, parent=None):
+        self.parent = parent
         super(mainWindow, self).__init__(parent)
         self.configureWindow()
         self.widgets()
@@ -35,12 +31,6 @@ class mainWindow(QDialog):
     def configureWindow(self):
         self.setWindowTitle("Fast Material Builder")
         self.setMinimumSize(600,230)
-
-    def get_icon_path(self, icon_name):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        gtToolsDir = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
-        icon_path = os.path.join(gtToolsDir, "config", "icons", icon_name)
-        return icon_path
    
     def widgets(self):
         tooltipShort = 5000
@@ -66,8 +56,7 @@ class mainWindow(QDialog):
         self.floatingChooserBut = QPushButton()
         self.floatingChooserBut.setStyleSheet("QPushButton { margin: 1px; border: none;}")
         self.floatingChooserBut.setFixedSize(45, 45)
-        floatingChooserIconPath = self.get_icon_path("chooser_folder.svg")
-        self.floatingChooserIcon = QIcon(floatingChooserIconPath)
+        self.floatingChooserIcon = QIcon(getIconPath("chooser_folder.svg"))
         self.floatingChooserBut.setIcon(self.floatingChooserIcon)
         self.floatingChooserBut.setIconSize(QSize(30, 30))
 
@@ -155,17 +144,14 @@ class mainWindow(QDialog):
 
         self.cancelBut.clicked.connect(self.close)
         self.okBut.clicked.connect(self.exportSettings)
-        #self.okBut.clicked.connect(self.close)
 
     def folderChooser(self):
         # Get the current Prism Project
         if PrismInit:
             startDirectory = "$PRISMJOB"
-            prismProject = hou.getenv("PRISMJOB")
         
         # Set the texture directory with file input
         houdiniJob = hou.getenv("JOB")
-        hipDir = os.path.dirname(hou.hipFile.path())
         # Check if the JOB variable is set
         winUser = getpass.getuser()
         if houdiniJob == "C:/Users/" + winUser:
@@ -206,20 +192,77 @@ class mainWindow(QDialog):
                     }
         self.confirm.emit(settings)
 
-class ChannelSelWindow(QDialog):
+class channelSelWindow(QDialog):
 
-    launch = Signal(bool)
+    launch = Signal(list)
 
-    def __init__(self):
-        super().__init__(parent=mainWindow)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowModality(Qt.ApplicationModal)
         self.configureWindow()
         self.widgets()
+        self.layouts()
+        self.connections()
     
     def configureWindow(self):
         self.setWindowTitle("Choose the textures channels")
-        self.setMinimumSize(600,300)
 
     def widgets(self):
         # Channel selection list
         self.channelSelList = QListView()
-        channelModel = QStandardItemModel(self.channelSelList)
+        self.channelModel = QStandardItemModel(self.channelSelList)
+        self.channelSelList.setModel(self.channelModel)
+
+        # OK and Cancel Buttons
+        self.okBut = QPushButton("OK")
+        self.cancelBut = QPushButton("Cancel")
+
+    def layouts(self):
+        self.mainLyt = QVBoxLayout(self)
+        self.mainLyt.setContentsMargins(0,0,0,0)
+        self.mainLyt.setSpacing(0)
+
+        self.mainLyt.addWidget(self.channelSelList)
+
+        self.buttonsLyt = QHBoxLayout(self)
+        self.buttonsLyt.addWidget(self.cancelBut)
+        self.buttonsLyt.addWidget(self.okBut)
+
+        self.mainLyt.addLayout(self.buttonsLyt)
+
+    def connections(self):
+        self.cancelBut.clicked.connect(self.close)
+        self.okBut.clicked.connect(self.getSelectedChannels)
+        self.okBut.clicked.connect(self.close)
+        
+    def populateChannelList(self, foundChannels):
+        # Clear the channel list
+        self.channelModel.clear()
+        if not foundChannels:
+            hou.ui.displayMessage("No channels found in the current directory")
+        else:
+            max_text_length = 0
+            for index, name in enumerate(foundChannels):
+                channel = QStandardItem(name)
+                channel.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+                channel.setCheckState(Qt.Checked)
+                self.channelModel.appendRow(channel)
+
+                # Track the length of the longest text
+                max_text_length = max(max_text_length, len(name))
+        
+        # Dynamically set the width of the window
+        font_metrics = self.channelSelList.fontMetrics()
+        text_width = font_metrics.horizontalAdvance("W" * max_text_length)
+        text_height = font_metrics.height() * len(foundChannels) + 50
+        self.setMinimumSize(max(300, text_width +50), max(300, text_height))
+
+    def getSelectedChannels(self):
+        selectedChannels = []
+        channelModel = self.channelSelList.model()
+        for row in range(channelModel.rowCount()):
+            item = channelModel.item(row)
+            if item.checkState() == Qt.Checked:
+                selectedChannels.append(row)
+
+        self.launch.emit(selectedChannels)
