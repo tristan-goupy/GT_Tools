@@ -34,24 +34,24 @@ class MainApp(QDialog):
 
         # Dictionary to map channels to their possible names
         self.channelNames = {
-            'BaseColor': ['BaseColor', 'Diffuse', 'Albedo', 'Color', 'DIFF', 'BC'],
-            'AO': ['AmbientOcclusion', 'AO'],
-            'Specular': ['Specular', 'SPC'],
-            'SpecularColor': ['SpecularColor', 'SpecColor', 'SPCC'],
-            'SpecularRoughness': ['Roughness', 'Rough', 'SPCR'],
-            'Metallic': ['Metalness', 'Metallic', 'MTC'],
-            'Normal': ['Normal', 'NRM'],
-            'Bump': ['Bump', 'BMP'],
-            'Displacement': ['Displacement', 'DISP'],
-            'Opacity': ['Opacity', 'Alpha', 'OPA'],
-            'Subsurface': ['Subsurface', 'SSS'],
-            'SubsurfaceColor': ['SubsurfaceColor', 'SSC'],
-            'SubsurfaceRadius': ['SubsurfaceRadius', 'SSR'],
-            'Emissive': ['Emissive', 'Emission', 'EMIS'],
-            'EmissiveColor': ['EmissiveColor', 'EmissionColor', 'EMIC'],
-            'Glossiness': ['Glossiness', 'GLS'],
-            'Height': ['Height', 'HGT'],
-            'Reflection': ['Reflection', 'RFL']
+            'BaseColor': ['BaseColor', 'Diffuse', 'Albedo', 'Color', 'DIFF', 'BC', 'basecolor', 'diffuse', 'albedo', 'color', 'diff', 'bc'],
+            'AO': ['AmbientOcclusion', 'AO', 'ambiantOcclusion', 'ao'],
+            'Specular': ['Specular', 'SPC', 'specular', 'spc'],
+            'SpecularColor': ['SpecularColor', 'SpecColor', 'SPCC', 'specularColor', 'specColor', 'spcc'],
+            'SpecularRoughness': ['Roughness', 'Rough', 'SPCR', 'roughness', 'rough', 'spcr'],
+            'Metallic': ['Metalness', 'Metallic', 'MTC', 'metalness', 'metallic', 'mtc'],
+            'Normal': ['Normal', 'NRM', 'normal', 'nrm'],
+            'Bump': ['Bump', 'BMP', 'bump', 'bmp'],
+            'Displacement': ['Displacement', 'DISP', 'displacement', 'disp'],
+            'Opacity': ['Opacity', 'Alpha', 'OPA', 'opacity', 'alpha', 'opa'],
+            'Subsurface': ['Subsurface', 'SSS', 'subsurface', 'sss'],
+            'SubsurfaceColor': ['SubsurfaceColor', 'SSC', 'subsurfaceColor', 'ssc'],
+            'SubsurfaceRadius': ['SubsurfaceRadius', 'SSR', 'subsurfaceRadius', 'ssr'],
+            'Emissive': ['Emissive', 'Emission', 'EMIS', 'emissive', 'emission', 'emis'],
+            'EmissiveColor': ['EmissiveColor', 'EmissionColor', 'EMIC', 'emissiveColor', 'emissionColor', 'emic'],
+            'Glossiness': ['Glossiness', 'GLS', 'glossiness', 'gls'],
+            'Height': ['Height', 'HGT', 'height', 'hgt'],
+            'Reflection': ['Reflection', 'RFL', 'reflection', 'rfl']
             }
 
         # Instantiate UI
@@ -101,10 +101,12 @@ class MainApp(QDialog):
 
             # Create channel selection menu
             self.foundChannels = list(self.udimChannels.keys())
-            self.channelSelWindow.populateChannelList(self.foundChannels)
-
+            
             if len(self.foundChannels) != 0 and self.materialList != []:
+                self.channelSelWindow.populateChannelList(self.foundChannels)
                 self.channelSelWindow.show()
+            else:
+                hou.ui.displayMessage("No channels found in the current directory")
             
 
     def materialBuilder(self, getSelectedChannels):

@@ -238,18 +238,15 @@ class channelSelWindow(QDialog):
     def populateChannelList(self, foundChannels):
         # Clear the channel list
         self.channelModel.clear()
-        if not foundChannels:
-            hou.ui.displayMessage("No channels found in the current directory")
-        else:
-            max_text_length = 0
-            for index, name in enumerate(foundChannels):
-                channel = QStandardItem(name)
-                channel.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-                channel.setCheckState(Qt.Checked)
-                self.channelModel.appendRow(channel)
+        max_text_length = 0
+        for index, name in enumerate(foundChannels):
+            channel = QStandardItem(name)
+            channel.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            channel.setCheckState(Qt.Checked)
+            self.channelModel.appendRow(channel)
 
-                # Track the length of the longest text
-                max_text_length = max(max_text_length, len(name))
+            # Track the length of the longest text
+            max_text_length = max(max_text_length, len(name))
         
         # Dynamically set the width of the window
         font_metrics = self.channelSelList.fontMetrics()
