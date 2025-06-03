@@ -1,15 +1,20 @@
-import os
+import os, subprocess
 import hou, voptoolutils
 import re
+import importlib
 
-from PySide2.QtCore import Signal
+from PySide2.QtCore import (Signal)
 from PySide2.QtWidgets import (QApplication, QDialog)
+from utils import helpers
 from ui import GT_materialBuilder_ui as ui
 
 try:
     import PrismInit
 except ImportError:
     PrismInit = None
+
+importlib.reload(ui)
+importlib.reload(helpers)
 
 class MainApp(QDialog):
 
@@ -22,10 +27,16 @@ class MainApp(QDialog):
         # Prism Project
         if PrismInit:
             self.prismProject = hou.getenv("PRISMJOB")
+            if self.prismProject and self.prismProject.endswith("/"):
+                self.prismProject = self.prismProject.rstrip("/")
 
         # Houdini Job
         self.houdiniJob = hou.getenv("JOB")
+        if self.houdiniJob and self.houdiniJob.endswith("/"):
+            self.houdiniJob = self.houdiniJob.rstrip("/")
         self.hipDir = os.path.dirname(hou.hipFile.path())
+        if self.hipDir and self.hipDir.endswith("/"):
+            self.hipDir = self.hipDir.rstrip("/")
 
         # Create the masks for the different material subnets
         self.karmaSetup = [voptoolutils.KARMAMTLX_TAB_MASK,'karmamaterial','Karma Material Builder','kma']
@@ -107,10 +118,50 @@ class MainApp(QDialog):
                 self.channelSelWindow.show()
             else:
                 hou.ui.displayMessage("No channels found in the current directory")
-            
 
-    def materialBuilder(self, getSelectedChannels):
-            channelSel = getSelectedChannels
+    def convertTextures(self, textureSettings, matSetup):
+        if textureSettings.get("convertBitmap", False) and textureSettings.get("selectedChannels", []):
+            iconvert = helpers.getBinary("iconvert")
+            selectedChannels = textureSettings.get("selectedChannels", [])
+            
+            # Only process textures for selected channels
+            filesToConvert = []
+            if matSetup == self.karmaSetup:
+                # Iterate through each found texture in udimChannels and only process if selected
+                for idx in selectedChannels:
+                    channel = self.foundChannels[idx]
+                    if channel in self.udimChannels:
+                        texturePattern = self.udimChannels[channel]
+                        # Handle UDIM patterns
+                        if "<UDIM>" in texturePattern:
+                            # Find all matching UDIM files
+                            basePattern = texturePattern.replace("<UDIM>", r"\d{4}")
+                            regex = re.compile(basePattern.replace(".", r"\."))
+                            for fileName in os.listdir(self.absTextureDir):
+                                if regex.match(fileName):
+                                    inputFile = os.path.join(self.absTextureDir, fileName)
+                                    outputFile = os.path.splitext(inputFile)[0] + ".rat"
+                                    if not os.path.isfile(outputFile):
+                                        filesToConvert.append((inputFile, outputFile))
+                        else:
+                            inputFile = os.path.join(self.absTextureDir, texturePattern)
+                            outputFile = os.path.splitext(inputFile)[0] + ".rat"
+                            if not os.path.isfile(outputFile):
+                                filesToConvert.append((inputFile, outputFile))
+
+                progress = ui.progressConversionWindow(label = "Converting textures...", maximum = len(filesToConvert), parent=self)
+                for i, (inputFile, outputFile) in enumerate(filesToConvert):
+                    if progress.wasCanceled():
+                        break
+                    command = f'"{iconvert}" "{inputFile}" "{outputFile}"'
+                    subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
+                    progress.setValue(i + 1)
+                    QApplication.processEvents()
+            progress.close()
+
+    def materialBuilder(self, textureSettings):
+            channelSel = textureSettings.get("selectedChannels", "")
+            convertBitmap = textureSettings.get("convertBitmap", False)
             # Get the current context
             desktop = hou.ui.curDesktop()
             pane = desktop.paneTabOfType(hou.paneTabType.NetworkEditor)
@@ -163,6 +214,13 @@ class MainApp(QDialog):
                     # Create texture node
                     textureNode = matNet.createNode("mtlximage", channel)
                     indexOfChannel = list(self.channelNames.keys()).index(channel)
+
+                    # If convertBitmap is True, use the converted textures
+                    if convertBitmap is True:
+                        # Check if the texture is a .rat file
+                        if not texturePattern.endswith(".rat"):
+                            # Replace the file extension with .rat
+                            texturePattern = texturePattern.rsplit('.', 1)[0] + ".rat"
                     
                     # Path to the texture channel
                     if self.relativePathParm is True:
@@ -184,7 +242,7 @@ class MainApp(QDialog):
                     # Set the signature
                     if channel == 'BaseColor' or channel == 'Opacity' or channel == 'Emissive':
                         textureNode.parm("signature").set("color3")
-                    elif channel == 'Roughness' or channel == 'Height' or channel == 'Metalness' or channel == 'AO' or channel == 'Specular' or channel == 'Displacement':
+                    elif channel == 'SpecularRoughness' or channel == 'Height' or channel == 'Metalness' or channel == 'AO' or channel == 'Specular' or channel == 'Displacement':
                         textureNode.parm("signature").set("float")
                     elif channel == 'Normal':
                         textureNode.parm("signature").set("vector3")
@@ -333,7 +391,7 @@ class MainApp(QDialog):
                         surfaceNode.setInput(4, textureNode, 0)
                     # Normal
                     if indexOfChannel == 6:
-                        surfaceNode.setInput(10, textureNode, 4)
+                        textureNode.destroy() # For better viewport visualization
                     # Opacity
                     if indexOfChannel == 9:
                         surfaceNode.setInput(8, textureNode, 0)
@@ -350,6 +408,7 @@ class MainApp(QDialog):
                     if "Karma" in material:
                         matSetup = self.karmaSetup
                         matPrefix = 'KMA_'
+                        self.convertTextures(textureSettings, matSetup)
                         createRenderMaterials(matSetup)
                     elif "MaterialX" in material:
                         matSetup = self.mtlxSetup
@@ -359,4 +418,5 @@ class MainApp(QDialog):
                         matSetup = self.usdSetup
                         matPrefix = 'USD_'
                         createUSDPreviewMat(matSetup)
+                self.channelSelWindow.close()
                 self.mainWindow.close()

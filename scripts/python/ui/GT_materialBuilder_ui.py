@@ -4,7 +4,7 @@ import hou
 from PySide2.QtCore import Qt, QSize, Signal
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QIcon
 from PySide2.QtWidgets import (
-    QVBoxLayout, QListView, QPushButton, QDialog, QLineEdit, QLabel, QCheckBox, QHBoxLayout
+    QVBoxLayout, QListView, QPushButton, QDialog, QLineEdit, QLabel, QCheckBox, QHBoxLayout, QProgressDialog
 )
 import ui.collapsibleSection as collapsibleSection
 from ui.ui_utils import getIconPath
@@ -15,6 +15,10 @@ try:
     import PrismInit
 except ImportError:
     PrismInit = None
+
+# Tooltip durations
+tooltipShort = 5000
+tooltipLong = 8000
 
 class mainWindow(QDialog):
 
@@ -33,9 +37,6 @@ class mainWindow(QDialog):
         self.setMinimumSize(600,230)
    
     def widgets(self):
-        tooltipShort = 5000
-        tooltipLong = 8000
-
         # Base Material Name
         self.baseMaterialNameTitle = QLabel("Base Material Name")
         self.baseMaterialName = QLineEdit()
@@ -105,7 +106,6 @@ class mainWindow(QDialog):
         self.okBut = QPushButton("OK")
         self.cancelBut = QPushButton("Cancel")
 
-    
     def layouts(self):
         self.mainLyt = QVBoxLayout(self)
 
@@ -194,7 +194,7 @@ class mainWindow(QDialog):
 
 class channelSelWindow(QDialog):
 
-    launch = Signal(list)
+    launch = Signal(dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -213,16 +213,24 @@ class channelSelWindow(QDialog):
         self.channelModel = QStandardItemModel(self.channelSelList)
         self.channelSelList.setModel(self.channelModel)
 
+        #.rat Export checkbox
+        self.chckConvertBitmap =QCheckBox("Convert textures to bitmaps")
+        self.chckConvertBitmap.setCheckable(True)
+        self.chckConvertBitmap.setChecked(True)
+        self.chckConvertBitmap.setToolTip("Convert the textures to bitmaps. This allows to optimize the texture reading during rendering. Renderman uses .tex files, Karma uses .rat files, and Arnold uses .tx files.")
+        self.chckConvertBitmap.setToolTipDuration(tooltipLong)
+
         # OK and Cancel Buttons
         self.okBut = QPushButton("OK")
         self.cancelBut = QPushButton("Cancel")
 
     def layouts(self):
         self.mainLyt = QVBoxLayout(self)
-        self.mainLyt.setContentsMargins(0,0,0,0)
-        self.mainLyt.setSpacing(0)
+        self.mainLyt.setContentsMargins(5,5,5,5)
+        self.mainLyt.setSpacing(5)
 
         self.mainLyt.addWidget(self.channelSelList)
+        self.mainLyt.addWidget(self.chckConvertBitmap)
 
         self.buttonsLyt = QHBoxLayout(self)
         self.buttonsLyt.addWidget(self.cancelBut)
@@ -262,4 +270,21 @@ class channelSelWindow(QDialog):
             if item.checkState() == Qt.Checked:
                 selectedChannels.append(row)
 
-        self.launch.emit(selectedChannels)
+        if self.chckConvertBitmap.isChecked():
+            convertBitmap = True
+        else:
+            convertBitmap = False
+        textureSettings = { "selectedChannels": selectedChannels,
+                            "convertBitmap": convertBitmap,
+                          }
+            
+        self.launch.emit(textureSettings)
+
+class progressConversionWindow(QProgressDialog):
+    def __init__(self, label = "Converting textures...", maximum = 100, parent=None):
+        super().__init__(label, "Cancel", 0, maximum, parent)
+        self.setWindowTitle("Texture Conversion Progress")
+        self.setWindowModality(Qt.WindowModal)
+        self.setMinimumDuration(0)
+        self.setValue(0)
+        self.setMinimumSize(450, 100)
