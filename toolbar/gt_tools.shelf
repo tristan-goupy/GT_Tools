@@ -8,6 +8,7 @@
   <toolshelf name="gt_tools" label="GT Tools">
     <memberTool name="nodeColorChooser"/>
     <memberTool name="fastMaterialBuilder"/>
+    <memberTool name="batch_convert"/>
   </toolshelf>
 
   <tool name="nodeColorChooser" label="Node Color Chooser" icon="chooser_color.svg">
@@ -34,6 +35,8 @@ You can also choose to create a USD Preview Material or not, and use relative pa
 
 Finally, you can select the textures channels you want to import in your material.]]></helpText>
     <script scriptType="python"><![CDATA[import GT_materialBuilder as GT
+import importlib
+importlib.reload(GT)    
 
 controller = GT.MainApp()]]></script>
   </tool>
