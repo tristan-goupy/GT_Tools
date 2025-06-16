@@ -7,6 +7,7 @@ from PySide2.QtCore import (Signal)
 from PySide2.QtWidgets import (QApplication, QDialog)
 from utils import helpers
 from ui import GT_materialBuilder_ui as ui
+import GT_textureConverter as t
 
 try:
     import PrismInit
@@ -15,6 +16,7 @@ except ImportError:
 
 importlib.reload(ui)
 importlib.reload(helpers)
+importlib.reload(t)
 
 class MainApp(QDialog):
 
@@ -121,43 +123,21 @@ class MainApp(QDialog):
 
     def convertTextures(self, textureSettings, matSetup):
         if textureSettings.get("convertBitmap", False) and textureSettings.get("selectedChannels", []):
-            iconvert = helpers.getBinary("iconvert")
             selectedChannels = textureSettings.get("selectedChannels", [])
-            
-            # Only process textures for selected channels
-            filesToConvert = []
-            if matSetup == self.karmaSetup:
-                # Iterate through each found texture in udimChannels and only process if selected
-                for idx in selectedChannels:
-                    channel = self.foundChannels[idx]
-                    if channel in self.udimChannels:
-                        texturePattern = self.udimChannels[channel]
-                        # Handle UDIM patterns
-                        if "<UDIM>" in texturePattern:
-                            # Find all matching UDIM files
-                            basePattern = texturePattern.replace("<UDIM>", r"\d{4}")
-                            regex = re.compile(basePattern.replace(".", r"\."))
-                            for fileName in os.listdir(self.absTextureDir):
-                                if regex.match(fileName):
-                                    inputFile = os.path.join(self.absTextureDir, fileName)
-                                    outputFile = os.path.splitext(inputFile)[0] + ".rat"
-                                    if not os.path.isfile(outputFile):
-                                        filesToConvert.append((inputFile, outputFile))
-                        else:
-                            inputFile = os.path.join(self.absTextureDir, texturePattern)
-                            outputFile = os.path.splitext(inputFile)[0] + ".rat"
-                            if not os.path.isfile(outputFile):
-                                filesToConvert.append((inputFile, outputFile))
+            renderEngine = []
+            texturePattern = []
 
-                progress = ui.progressConversionWindow(label = "Converting textures...", maximum = len(filesToConvert), parent=self)
-                for i, (inputFile, outputFile) in enumerate(filesToConvert):
-                    if progress.wasCanceled():
-                        break
-                    command = f'"{iconvert}" "{inputFile}" "{outputFile}"'
-                    subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
-                    progress.setValue(i + 1)
-                    QApplication.processEvents()
-            progress.close()
+            # Append render engines to list
+            if matSetup == self.karmaSetup:
+                renderEngine.append('Karma')
+            # Get the texture pattern based on the selected channels            
+            for idx in selectedChannels:
+                channel = self.foundChannels[idx]
+                if channel in self.udimChannels:
+                    texturePattern.append(self.udimChannels[channel])
+
+            # Run texture converter
+            t.textureConverter.startConversion(self, textureDirectory = self.absTextureDir, renderEngine = renderEngine, texturePattern = texturePattern)
 
     def materialBuilder(self, textureSettings):
             channelSel = textureSettings.get("selectedChannels", "")

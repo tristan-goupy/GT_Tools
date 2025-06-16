@@ -8,7 +8,7 @@
   <toolshelf name="gt_tools" label="GT Tools">
     <memberTool name="nodeColorChooser"/>
     <memberTool name="fastMaterialBuilder"/>
-    <memberTool name="batch_convert"/>
+    <memberTool name="textureConverter"/>
   </toolshelf>
 
   <tool name="nodeColorChooser" label="Node Color Chooser" icon="chooser_color.svg">
@@ -39,5 +39,13 @@ import importlib
 importlib.reload(GT)    
 
 controller = GT.MainApp()]]></script>
+  </tool>
+
+  <tool name="textureConverter" label="Texture Converter" icon="textureConverter.svg">
+    <script scriptType="python"><![CDATA[import GT_textureConverter as GT
+import importlib
+importlib.reload(GT)    
+
+controller = GT.textureConverter()]]></script>
   </tool>
 </shelfDocument>
