@@ -113,13 +113,16 @@ class MainApp(QDialog):
                             self.udimChannels[channel] = texturePattern
 
             # Create channel selection menu
-            self.foundChannels = list(self.udimChannels.keys())
-            
-            if len(self.foundChannels) != 0 and self.materialList != []:
-                self.channelSelWindow.populateChannelList(self.foundChannels)
-                self.channelSelWindow.show()
+            if self.materialList == []:
+                hou.ui.displayMessage("No materials selected. Please select at least one material")
             else:
-                hou.ui.displayMessage("No channels found in the current directory")
+                self.foundChannels = list(self.udimChannels.keys())
+                
+                if len(self.foundChannels) != 0 and self.materialList != []:
+                    self.channelSelWindow.populateChannelList(self.foundChannels)
+                    self.channelSelWindow.show()
+                else:
+                    hou.ui.displayMessage("No channels found in the current directory")
 
     def convertTextures(self, textureSettings, matSetup):
         if textureSettings.get("convertBitmap", False) and textureSettings.get("selectedChannels", []):
