@@ -1,11 +1,11 @@
 ####################### GT_textureConvert UI #######################
 # Imports
 from PySide2.QtCore import Qt, QSize, Signal
-from PySide2.QtGui import QStandardItemModel, QStandardItem, QIcon
+from PySide2.QtGui import QStandardItemModel, QStandardItem, QIcon, QGuiApplication
 from PySide2.QtWidgets import (
     QVBoxLayout, QListView, QPushButton, QDialog, QLineEdit, QLabel, QHBoxLayout, QProgressDialog, QFileDialog
 )
-from ui.ui_utils import getIconPath
+from ui.ui_utils import getIconPath, loadSVGIcon
 
 # Global variables
 TOOLTIPSHORT = 5000
@@ -28,13 +28,30 @@ class TextureConverterWindow(QDialog):
         self.setMinimumSize(500, 300)
 
     def widgets(self):
-        # Browse Button
-        self.browseButton = QPushButton("Browse")
-        self.browseButton.setFocusPolicy(Qt.NoFocus)
+        # Input Browse Button
+        self.inputBrowseButton = QPushButton()
+        browseIcon = loadSVGIcon('chooser_folder.svg', QSize(20, 20))
+        self.inputBrowseButton.setFocusPolicy(Qt.NoFocus)
+        self.inputBrowseButton.setIcon(browseIcon)
+        self.inputBrowseButton.setIconSize(QSize(20, 20))
+        self.inputBrowseButton.setFixedSize(QSize(25, 25))
+        self.inputBrowseButton.setStyleSheet("QPushButton {border: none; margin: 1px;}")
 
-        # Path label
-        self.folderPath = QLineEdit()
-        self.folderPath.setPlaceholderText("Texture folder")
+        # Output Browse Button
+        self.outputBrowseButton = QPushButton()
+        self.outputBrowseButton.setFocusPolicy(Qt.NoFocus)
+        self.outputBrowseButton.setIcon(browseIcon)
+        self.outputBrowseButton.setIconSize(QSize(20, 20))
+        self.outputBrowseButton.setFixedSize(QSize(25, 25))
+        self.outputBrowseButton.setStyleSheet("QPushButton {border: none; margin: 1px;}")
+
+        # Input Path label
+        self.inputFolderPath = QLineEdit()
+        self.inputFolderPath.setPlaceholderText("Input Texture folder")
+
+        self.outputFolderPath = QLineEdit()
+        self.outputFolderPath.setText("${rootFolder}")
+        self.outputFolderPath.setPlaceholderText("Output Texture folder")
 
         # Render Engine Selection List
         self.selRenderEngine = QListView()
@@ -60,12 +77,24 @@ class TextureConverterWindow(QDialog):
     def layouts(self):
         # Main Layout
         self.mainLyt = QVBoxLayout(self)
-
         self.mainLyt.setContentsMargins(10, 10, 10, 10)
 
-        self.mainLyt.addWidget(self.folderPath)
-        self.mainLyt.addWidget(self.browseButton)
-        self.mainLyt.addWidget(QLabel("Select Render Engine for bitmap format :"))
+        # Input Folder Layout
+        self.inputBrowseLyt = QHBoxLayout()
+        self.inputBrowseLyt.addWidget(self.inputFolderPath)
+        self.inputBrowseLyt.addWidget(self.inputBrowseButton)
+
+        # Output Folder Layout
+        self.outputBrowseLyt = QHBoxLayout()
+        self.outputBrowseLyt.addWidget(self.outputFolderPath)
+        self.outputBrowseLyt.addWidget(self.outputBrowseButton)
+
+        self.mainLyt.addWidget(QLabel("Select input texture folder :"))
+        self.mainLyt.addLayout(self.inputBrowseLyt)
+        self.mainLyt.addWidget(QLabel("Select output texture folder :"))
+        self.mainLyt.addLayout(self.outputBrowseLyt)
+
+        self.mainLyt.addWidget(QLabel("Select render engine for bitmap format :"))
         self.mainLyt.addWidget(self.selRenderEngine)
 
         self.buttonsLyt = QHBoxLayout()
@@ -75,7 +104,8 @@ class TextureConverterWindow(QDialog):
         self.mainLyt.addLayout(self.buttonsLyt)
 
     def connections(self):
-        self.browseButton.clicked.connect(self.showBrowseFolder)
+        self.inputBrowseButton.clicked.connect(self.showBrowseFolder)
+        self.outputBrowseButton.clicked.connect(self.showOutputFolder)
         self.okBut.clicked.connect(self.export)
         self.cancelBut.clicked.connect(self.close)
 
@@ -83,11 +113,18 @@ class TextureConverterWindow(QDialog):
         path = QFileDialog.getExistingDirectory()
 
         if path:
-            self.folderPath.setText(path)
-            self.path = path
+            self.inputFolderPath.setText(path)
+            self.inputFolderPath = path
+
+    def showOutputFolder(self):
+        path = QFileDialog.getExistingDirectory()
+
+        if path:
+            self.outputFolderPath.setText(path)
+            self.outputFolderPath = path
 
     def export(self):
-        textureDirectory = self.folderPath.text()
+        textureDirectory = self.inputFolderPath.text()
         renderEngine = []
         for index in range(self.selRenderEngine.model().rowCount()):
             item = self.selRenderEngine.model().item(index)
