@@ -16,6 +16,7 @@ from ui import GT_textureConverter_ui as ui
 # Importlib temp
 import importlib
 importlib.reload(ui)
+importlib.reload(helpers)
 
 # Global variables
 FILTER = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".exr"]
