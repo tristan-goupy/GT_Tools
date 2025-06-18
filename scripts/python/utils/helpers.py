@@ -11,7 +11,14 @@ def getBinary(binary):
     # Determine OS filepaths
     if platform.system() == "Linux":
 
-        root = hou.houdiniPath()[7]
+        root = ""
+        houdiniPaths = hou.houdiniPath()
+        #Check for Houdini bin folder (this is to make the search adaptable to each inviduals' Houdini installation)
+        for path in houdiniPaths:
+            if "bin" in path:
+                root = path
+                break
+        
         slash = "/"
         binaryFolder = slash + "bin" + slash
         executable = binary + " "
@@ -22,7 +29,14 @@ def getBinary(binary):
     # Filepaths for Windows
     elif platform.system() == "Windows":
 
-        root = hou.houdiniPath()[7]
+        root = ""
+        houdiniPaths = hou.houdiniPath()
+        #Check for Houdini bin folder (this is to make the search adaptable to each inviduals' Houdini installation)
+        for path in houdiniPaths:
+            if "bin" in path:
+                root = path
+                break
+
         root.replace("/", "\\")
         slash = "\\"
         binaryFolder = slash
