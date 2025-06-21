@@ -138,13 +138,19 @@ class MainApp(QDialog):
                 channel = self.foundChannels[idx]
                 if channel in self.udimChannels:
                     texturePattern.append(self.udimChannels[channel])
+            
+            conversionSettings = {
+                "inputDirectory": self.absTextureDir,
+                "outputDirectory": self.absTextureDir,
+                "renderEngine": renderEngine,
+            }
 
             # Run texture converter
-            t.textureConverter.startConversion(self, textureDirectory = self.absTextureDir, renderEngine = renderEngine, texturePattern = texturePattern)
+            t.textureConverter.startConversion(self, conversionSettings, texturePattern = texturePattern)
 
     def materialBuilder(self, textureSettings):
             channelSel = textureSettings.get("selectedChannels", "")
-            convertBitmap = textureSettings.get("convertBitmap", False)
+            convert = textureSettings.get("convertBitmap", False)
             # Get the current context
             desktop = hou.ui.curDesktop()
             pane = desktop.paneTabOfType(hou.paneTabType.NetworkEditor)
@@ -174,7 +180,7 @@ class MainApp(QDialog):
                 voptoolutils._setupMtlXBuilderSubnet(matNet, materialType, materialType, matMask, folderLabel, renderCtxt)
 
                 # Create Karma material subnet
-            def createRenderMaterials(matSetup, usdSetup = self.usdSetup):
+            def createRenderMaterials(matSetup, convertBitmap, usdSetup = self.usdSetup):
                 matNet = target.createNode("subnet", matPrefix + self.baseName + "_MTL")
                 if matSetup != usdSetup:
                     VopNetSetup(matNet, matSetup[1], matSetup[0], matSetup[2], matSetup[3])
@@ -392,11 +398,11 @@ class MainApp(QDialog):
                         matSetup = self.karmaSetup
                         matPrefix = 'KMA_'
                         self.convertTextures(textureSettings, matSetup)
-                        createRenderMaterials(matSetup)
+                        createRenderMaterials(matSetup, convert)
                     elif "MaterialX" in material:
                         matSetup = self.mtlxSetup
                         matPrefix = 'MTLX_'
-                        createRenderMaterials(matSetup)
+                        createRenderMaterials(matSetup, False)
                     elif "USD Preview Material" in material:
                         matSetup = self.usdSetup
                         matPrefix = 'USD_'

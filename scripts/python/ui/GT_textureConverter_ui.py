@@ -14,7 +14,7 @@ TOOLTIPLONG = 8000
 # UI Code
 class TextureConverterWindow(QDialog):
     #Signals
-    start = Signal(str, list)
+    start = Signal(dict)
     def __init__(self, parent=None):
         self.parent = parent
         super(TextureConverterWindow, self).__init__(parent)
@@ -98,8 +98,8 @@ class TextureConverterWindow(QDialog):
         self.mainLyt.addWidget(self.selRenderEngine)
 
         self.buttonsLyt = QHBoxLayout()
-        self.buttonsLyt.addWidget(self.okBut)
         self.buttonsLyt.addWidget(self.cancelBut)
+        self.buttonsLyt.addWidget(self.okBut)
 
         self.mainLyt.addLayout(self.buttonsLyt)
 
@@ -110,28 +110,35 @@ class TextureConverterWindow(QDialog):
         self.cancelBut.clicked.connect(self.close)
 
     def showBrowseFolder(self):
-        path = QFileDialog.getExistingDirectory()
+        self.inputPath = QFileDialog.getExistingDirectory()
 
-        if path:
-            self.inputFolderPath.setText(path)
-            self.inputFolderPath = path
+        if self.inputPath:
+            self.inputFolderPath.setText(self.inputPath)
 
     def showOutputFolder(self):
-        path = QFileDialog.getExistingDirectory()
+        outputPath = QFileDialog.getExistingDirectory()
 
-        if path:
-            self.outputFolderPath.setText(path)
-            self.outputFolderPath = path
+        if outputPath == self.inputPath:
+            self.outputFolderPath.setText("${rootFolder}")
+        elif outputPath:
+            self.outputFolderPath.setText(outputPath)
 
     def export(self):
-        textureDirectory = self.inputFolderPath.text()
+        inputDirectory = self.inputFolderPath.text()
+        outputDirectory = self.outputFolderPath.text()
         renderEngine = []
         for index in range(self.selRenderEngine.model().rowCount()):
             item = self.selRenderEngine.model().item(index)
             if item.checkState() == Qt.Checked:
                 renderEngine.append(item.text())
+        
+        settings = {
+            "inputDirectory": inputDirectory,
+            "outputDirectory": outputDirectory,
+            "renderEngine": renderEngine
+        }
 
-        self.start.emit(textureDirectory, renderEngine)
+        self.start.emit(settings)
 
 class progressConversionWindow(QProgressDialog):
     def __init__(self, label = "Converting textures...", maximum = 100, parent=None):

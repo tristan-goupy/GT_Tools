@@ -33,8 +33,11 @@ class textureConverter(QDialog):
         self.converterWindow.show()
 
     @err_catcher(name = __name__, silent=True)
-    def startConversion(self, textureDirectory, renderEngine, texturePattern=[]):
-        if textureDirectory != "":
+    def startConversion(self, settings, texturePattern = []):
+        inputDirectory = settings.get("inputDirectory", "")
+        outputDirectory = settings.get("outputDirectory", "")
+        renderEngine = settings.get("renderEngine", [])
+        if inputDirectory != "":
 
             filesToConvert = []
             for engine in renderEngine:
@@ -43,7 +46,7 @@ class textureConverter(QDialog):
                     extension = ".rat"
                 if not executable:
                     raise Exception("iconvert not found. Please check your Houdini installation.")
-                # Handle UDIM patterns
+                # Handle UDIM patterns (GT Material Builder)
                 
                 if texturePattern != []:
                     for pattern in texturePattern:
@@ -58,11 +61,16 @@ class textureConverter(QDialog):
                                     if not os.path.isfile(outputFile):
                                         filesToConvert.append((inputFile, outputFile))
                 else:
-                    for fileName in os.listdir(textureDirectory):
+                    for fileName in os.listdir(inputDirectory):
                         if not any(fileName.endswith(ext) for ext in FILTER):
                             continue
-                        inputFile = os.path.join(textureDirectory, fileName)
-                        outputFile = os.path.splitext(inputFile)[0] + extension
+                        inputFile = os.path.join(inputDirectory, fileName)
+                        if outputDirectory == "${rootFolder}":
+                            outputFile = os.path.splitext(inputFile)[0] + extension
+                        else:
+                            if not os.path.isdir(outputDirectory):
+                                os.makedirs(outputDirectory)
+                            outputFile = os.path.join(outputDirectory, os.path.splitext(fileName)[0] + extension)
                         if not os.path.isfile(outputFile):
                             filesToConvert.append((inputFile, outputFile))
         
