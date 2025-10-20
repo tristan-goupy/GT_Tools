@@ -14,6 +14,11 @@ from PySide2.QtWidgets import (QApplication, QDialog)
 from ui import GT_textureConverter_ui as ui
 
 # Importlib temp
+from scripts import load_plugins, get_plugins
+
+load_plugins()
+plugins = get_plugins()
+
 import importlib
 importlib.reload(ui)
 importlib.reload(helpers)
@@ -25,6 +30,10 @@ FILTER = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".exr"]
 class textureConverter(QDialog):
     def __init__(self, parent = QApplication.activeWindow()):
         super(textureConverter, self).__init__(parent)
+
+        plugin_class = plugins["RendermanPlugin"]
+        self.plugin_instance = plugin_class()
+        self.plugin_instance.run()
         
         #Instantiate UI
         self.converterWindow = ui.TextureConverterWindow(self)
@@ -44,8 +53,15 @@ class textureConverter(QDialog):
                 if "Karma" in renderEngine:
                     executable = helpers.getBinary("iconvert")
                     extension = ".rat"
-                if not executable:
-                    raise Exception("iconvert not found. Please check your Houdini installation.")
+                    if not executable:
+                        raise Exception("iconvert not found. Please check your Houdini installation.")
+                
+                if "Renderman" in renderEngine:
+                    executable = self.plugin_instance.get_executable("txmake")
+                    extension = self.plugin_instance.get_extension()
+                    if not executable:
+                        raise Exception("txmake not found. Please check your Renderman installation.")
+
                 # Handle UDIM patterns (GT Material Builder)
                 
                 if texturePattern != []:
